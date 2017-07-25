@@ -1,6 +1,6 @@
-# chatfront
+# simple chat page
 
-> A Vue.js project
+> A Vue + Vuetify simple chat demo
 
 ## Build Setup
 
