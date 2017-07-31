@@ -12,13 +12,13 @@
             </v-btn>
             <span class="white--text" v-html="header"></span>
         </v-layout>
-        <v-divider style="margin-bottom:2px;"></v-divider>
         <div class="chatmsg-content">
+          <v-divider style="margin-bottom:20px;"></v-divider>
           <template v-for="(msg, idx) in messages" >
           <v-layout row  v-bind:key="idx" class="chatmsg-other" v-if="msg.msgType === 'other'">
               <img src="/static/avatar.jpeg" />
               <v-card>
-                <v-card-text v-html="msg.content">
+                <v-card-text v-html="replaceBreakLine(msg.content)">
                 </v-card-text>
               </v-card>
           </v-layout>
@@ -45,6 +45,7 @@
 </template>
 
 <script>
+import uid from '../utils/utils.js'
 export default {
   data () {
     return {
@@ -71,37 +72,56 @@ export default {
       this.sideBtnVisible = !this.sideBtnVisible
     },
     sendMsg () {
-      console.log('sendMsg ......')
-      // let data = {type: 1, payload: {from: 'duomila', content: this.sendMsgContent}}
-      let data = {msgType: 'me', content: this.sendMsgContent}
+      let data = {type: 1, payload: {chatMessage: {from: uid, content: this.sendMsgContent}}}
       this.sendMsgContent = ''
-      console.log('data >>>> ', data)
-      this.messages.push(data)
-      // this.conn.send(JSON.stringify(data))
+      this.conn.send(JSON.stringify(data))
+    },
+    messageHandler (data) {
+      let self = this
+      let msgs = JSON.parse(data)
+      msgs.forEach(function (msg) {
+        if (msg.type === 1) {
+          if (msg.payload.chatMessage.from === uid) {
+            msg.payload.chatMessage.msgType = 'me'
+          } else {
+            msg.payload.chatMessage.msgType = 'other'
+          }
+
+          self.messages.push(msg.payload.chatMessage)
+          setTimeout(function () {
+            let el = self.$el.querySelector('.chatmsg-content')
+            el.scrollTop = el.scrollHeight - el.offsetHeight
+          })
+        }
+      }, this)
     }
   },
   created () {
-  //   let self = this
-  //   console.log('window websocket', window['WebSocket'])
-  //   if (window['WebSocket']) {
-  //     this.conn = new WebSocket('ws://' + document.location.host + '/ws')
-  //     this.conn.onclose = function (evt) {
-  //       alert('connection closed')
-  //     }
-  //     this.conn.onmessage = function (evt) {
-  //       self.messageHandler(evt.data)
-  //     }
-  //   } else {
-  //     alert(`browser doesn't support websocket`)
-  //   }
+    let self = this
+    console.log('window websocket', window['WebSocket'])
+    if (window['WebSocket']) {
+      this.conn = new WebSocket('ws://' + document.location.host + '/ws')
+      // this.conn = new WebSocket('ws://127.0.0.1:9998/ws')
+      this.conn.onclose = function (evt) {
+        alert('connection closed')
+      }
+      this.conn.onmessage = function (evt) {
+        self.messageHandler(evt.data)
+      }
+    } else {
+      alert(`browser doesn't support websocket`)
+    }
   }
 }
 </script>
 
 <style>
-div.chatmsg-content {
-  min-height: 300px !important;
+.chatmsg-content {
+  height: 300px !important;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
+
 img {
   height: 30px;
   width: 30px;
