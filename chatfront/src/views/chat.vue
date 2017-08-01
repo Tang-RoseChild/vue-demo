@@ -188,6 +188,6 @@ img {
 }
 textarea {
   overflow: hidden;
-  resize: none;
+  resize: none !important;
 }
 </style>
